@@ -1,5 +1,3 @@
-
-
 from logging import getLogger
 from uuid import UUID
 
@@ -19,26 +17,23 @@ user_crud = CRUDBase(User)
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__ident="2b")
 
+
 def create_user(user_data: UserCreateRequest, session: Session):
     """Create a new user in the database"""
     # Hash the password
     password = pwd_context.hash(user_data.password.get_secret_value())
 
     # Create user dict without plain password
-    user_dict = user_data.model_dump(exclude={'password'})
-    user_dict['password'] = password
+    user_dict = user_data.model_dump(exclude={"password"})
+    user_dict["password"] = password
 
     # Create user
     user = user_crud.create(session, User(**user_dict))
     logger.info(
-        "User created successfully",
-        extra={
-            "user_id": str(user.uid),
-            "email": user.email,
-            "role": user.role.value
-        }
+        "User created successfully", extra={"user_id": str(user.uid), "email": user.email, "role": user.role.value}
     )
     return UserResponse.model_validate(user)
+
 
 def get_user_by_uid(uid: UUID, session: Session):
     """Get a user from the database by UID"""
@@ -47,11 +42,13 @@ def get_user_by_uid(uid: UUID, session: Session):
         raise HTTPException(status_code=404, detail="User not found")
     return UserResponse.model_validate(user)
 
+
 def get_users(session: Session):
     """Get all users from the database"""
     users = user_crud.get_all(session)
     # Transform to response models that exclude sensitive data
     return [UserResponse.model_validate(user) for user in users]
+
 
 def update_user(uid: UUID, user_data: UserUpdateRequest, session: Session):
     """Update an existing user in the database"""
@@ -64,14 +61,14 @@ def update_user(uid: UUID, user_data: UserUpdateRequest, session: Session):
     update_data = user_data.model_dump(exclude_unset=True)
 
     # Handle password separately if it's being updated
-    if 'password' in update_data and update_data['password'] is not None:
+    if "password" in update_data and update_data["password"] is not None:
         # Hash the new password
-        password_value = update_data['password'].get_secret_value()
+        password_value = update_data["password"].get_secret_value()
         hashed_password = pwd_context.hash(password_value)
         # Update the user's password directly
         user.password = hashed_password
         # Remove password from update_data to avoid SecretStr issues
-        del update_data['password']
+        del update_data["password"]
 
     # Update other fields
     for key, value in update_data.items():
@@ -83,6 +80,37 @@ def update_user(uid: UUID, user_data: UserUpdateRequest, session: Session):
     session.refresh(user)
     return UserResponse.model_validate(user)
 
+
 def delete_user(uid: UUID, session: Session):
     """Delete a user from the database"""
     return user_crud.delete(session, uid)
+
+
+def upload_user_photo(uid: UUID, photo_data: bytes, session: Session):
+    """Upload a photo for a user"""
+    user = user_crud.get(session, uid)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.photo = photo_data
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return {"message": "Photo uploaded successfully"}
+
+
+def delete_user_photo(uid: UUID, session: Session):
+    """Delete a user's photo"""
+    user = user_crud.get(session, uid)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.photo = None
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return {"message": "Photo deleted successfully"}

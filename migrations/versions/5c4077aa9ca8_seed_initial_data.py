@@ -35,31 +35,97 @@ def upgrade() -> None:
     )
 
     # Insert seed data
+    # All passwords are "P@ssw0rd!"
+    password_hash = '$2b$12$MUjFO0aqKG669iMeDMwoB.CCSl62Wyn92jNJZhE7t0abKVgkLczWa'
+
     op.bulk_insert(users, [
         {
             'uid': uuid4(),
-            'email': 'motbollox@gmail.com',
-            'name': 'The real boss',
+            'email': 'w.smithers@snrub-corp.io',
+            'name': 'Waylon Smithers',
             'role': UserRole.SUPER_ADMIN,
-            'password': '$2b$12$LKoKkbQe/6m7AU4RpaJay.47EVOsqJnaYn2Uqw4fi.FSdls/5zB1u',  # "password"
+            'password': password_hash,
             'created': datetime.utcnow(),
             'updated': datetime.utcnow()
         },
         {
             'uid': uuid4(),
-            'email': '80hurtz@gmail.com',
-            'name': 'Another influencer',
+            'email': 'c.carlson@snrub-corp.io',
+            'name': 'Carl Carlson',
+            'role': UserRole.ADMIN,
+            'password': password_hash,
+            'created': datetime.utcnow(),
+            'updated': datetime.utcnow()
+        },
+        {
+            'uid': uuid4(),
+            'email': 'c.charlie@snrub-corp.io',
+            'name': 'Charlie',
+            'role': UserRole.ADMIN,
+            'password': password_hash,
+            'created': datetime.utcnow(),
+            'updated': datetime.utcnow()
+        },
+        {
+            'uid': uuid4(),
+            'email': 'l.leonard@snrub-corp.io',
+            'name': 'Lenny Leonard',
             'role': UserRole.CREATOR,
-            'password': '$2b$12$8SDN58WEeDmeDQLYZEdwPO0ImS2.6ejbntDhKmzBi9kTaWvMtJfy2',  # "password"
+            'password': password_hash,
             'created': datetime.utcnow(),
             'updated': datetime.utcnow()
         },
         {
             'uid': uuid4(),
-            'email': 'follower@example.com',
-            'name': 'Sheep da follower',
+            'email': 'f.grimes@snrub-corp.io',
+            'name': 'Frank Grimes',
+            'role': UserRole.CREATOR,
+            'password': password_hash,
+            'created': datetime.utcnow(),
+            'updated': datetime.utcnow()
+        },
+        {
+            'uid': uuid4(),
+            'email': 'canary.m.burns@snrub-corp.io',
+            'name': 'Canary M. Burns',
+            'role': UserRole.CREATOR,
+            'password': password_hash,
+            'created': datetime.utcnow(),
+            'updated': datetime.utcnow()
+        },
+        {
+            'uid': uuid4(),
+            'email': 'angel.of.death@snrub-corp.io',
+            'name': 'Angel of Death',
+            'role': UserRole.CREATOR,
+            'password': password_hash,
+            'created': datetime.utcnow(),
+            'updated': datetime.utcnow()
+        },
+        {
+            'uid': uuid4(),
+            'email': 't.jankovsky@snrub-corp.io',
+            'name': 'Tibor Jankovsky',
             'role': UserRole.VIEWER,
-            'password': '$2b$12$0RNiB.7IWyYsKtl/Mwgt8OrqOXk.Mz5qwBFvI16sZ6RnGlAKh9ilq',  # "password"
+            'password': password_hash,
+            'created': datetime.utcnow(),
+            'updated': datetime.utcnow()
+        },
+        {
+            'uid': uuid4(),
+            'email': 'h.simpson@snrub-corp.io',
+            'name': 'Homer Simpson',
+            'role': UserRole.VIEWER,
+            'password': password_hash,
+            'created': datetime.utcnow(),
+            'updated': datetime.utcnow()
+        },
+        {
+            'uid': uuid4(),
+            'email': 'b.bernie@snrub-corp.io',
+            'name': 'Bernie',
+            'role': UserRole.VIEWER,
+            'password': password_hash,
             'created': datetime.utcnow(),
             'updated': datetime.utcnow()
         }
@@ -67,5 +133,18 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Optionally remove the seed data in downgrade
-    op.execute("DELETE FROM users WHERE email IN ('motbollox@gmail.com', '80hurtz@gmail.com', 'follower@example.com')")
+    # Remove the seed data in downgrade
+    op.execute("""
+        DELETE FROM users WHERE email IN (
+            'w.smithers@snrub-corp.io',
+            'c.carlson@snrub-corp.io',
+            'c.charlie@snrub-corp.io',
+            'l.leonard@snrub-corp.io',
+            'f.grimes@snrub-corp.io',
+            'canary.m.burns@snrub-corp.io',
+            'angel.of.death@snrub-corp.io',
+            't.jankovsky@snrub-corp.io',
+            'h.simpson@snrub-corp.io',
+            'b.bernie@snrub-corp.io'
+        )
+    """)

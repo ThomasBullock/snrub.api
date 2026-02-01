@@ -21,9 +21,7 @@ class TestCreateUser:
             "password": "NewUser123!",
         }
 
-        response = client.post(
-            "/api/users/", json=new_user_data, headers=admin_auth_headers
-        )
+        response = client.post("/api/users/", json=new_user_data, headers=admin_auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -65,9 +63,7 @@ class TestGetUser:
 
     def test_get_user_by_uid_success(self, authenticated_user, auth_headers):
         """Authenticated user can retrieve a user by UID"""
-        response = client.get(
-            f"/api/users/{authenticated_user.uid}", headers=auth_headers
-        )
+        response = client.get(f"/api/users/{authenticated_user.uid}", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -113,9 +109,7 @@ class TestUpdateUser:
 class TestDeleteUser:
     """Tests for DELETE /users/{uid} endpoint"""
 
-    def test_delete_user_admin_success(
-        self, session, authenticated_user, admin_auth_headers
-    ):
+    def test_delete_user_admin_success(self, session, authenticated_user, admin_auth_headers):
         """Admin can delete a user"""
         user_uid = authenticated_user.uid
 
@@ -130,8 +124,78 @@ class TestDeleteUser:
 
     def test_delete_user_non_admin_forbidden(self, authenticated_user, auth_headers):
         """Non-admin user cannot delete users"""
-        response = client.delete(
-            f"/api/users/{authenticated_user.uid}", headers=auth_headers
+        response = client.delete(f"/api/users/{authenticated_user.uid}", headers=auth_headers)
+
+        assert response.status_code == 403
+
+
+class TestUserPhoto:
+    """Tests for user photo upload/retrieve endpoints"""
+
+    def test_upload_photo_unauthenticated(self, authenticated_user, sample_png_bytes):
+        """Unauthenticated user cannot upload photo"""
+        files = {"file": ("photo.png", sample_png_bytes, "image/png")}
+
+        response = client.put(
+            f"/api/users/{authenticated_user.uid}/photo",
+            files=files,
         )
 
         assert response.status_code == 403
+
+    def test_upload_photo_success(self, authenticated_user, admin_auth_headers, sample_png_bytes):
+        """User can upload a PNG photo"""
+        files = {"file": ("photo.png", sample_png_bytes, "image/png")}
+
+        response = client.put(
+            f"/api/users/{authenticated_user.uid}/photo",
+            files=files,
+            headers=admin_auth_headers,
+        )
+
+        assert response.status_code == 200
+
+    def test_upload_photo_invalid_mime_type(self, authenticated_user, admin_auth_headers):
+        """Uploading non-PNG file should fail"""
+        files = {"file": ("photo.jpg", b"fake jpeg data", "image/jpeg")}
+
+        response = client.put(
+            f"/api/users/{authenticated_user.uid}/photo",
+            files=files,
+            headers=admin_auth_headers,
+        )
+
+        assert response.status_code == 400
+
+    def test_get_photo_success(self, user_with_photo, user_with_photo_auth_headers, sample_png_bytes):
+        """User can retrieve their photo"""
+        response = client.get(
+            f"/api/users/{user_with_photo.uid}/photo",
+            headers=user_with_photo_auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "image/png"
+        assert response.content == sample_png_bytes
+
+    def test_get_photo_not_found(self, authenticated_user, auth_headers):
+        """Getting photo for user without photo returns 404"""
+        response = client.get(
+            f"/api/users/{authenticated_user.uid}/photo",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 404
+
+    def test_delete_photo_success(self, session, user_with_photo, admin_auth_headers):
+        """Admin can delete a user's photo"""
+        response = client.delete(
+            f"/api/users/{user_with_photo.uid}/photo",
+            headers=admin_auth_headers,
+        )
+
+        assert response.status_code == 200
+
+        # Verify photo is removed from database
+        session.refresh(user_with_photo)
+        assert user_with_photo.photo is None

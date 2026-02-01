@@ -122,3 +122,62 @@ def admin_auth_token(admin_user):
 def admin_auth_headers(admin_auth_token):
     """Generate authorization headers for admin user"""
     return {"Authorization": f"Bearer {admin_auth_token}"}
+
+
+@pytest.fixture
+def sample_png_bytes():
+    """Generate a minimal valid PNG image (1x1 transparent pixel)"""
+    # Minimal valid PNG: 1x1 transparent pixel
+    return (
+        b"\x89PNG\r\n\x1a\n"  # PNG signature
+        b"\x00\x00\x00\rIHDR"  # IHDR chunk
+        b"\x00\x00\x00\x01"  # width: 1
+        b"\x00\x00\x00\x01"  # height: 1
+        b"\x08\x06"  # bit depth: 8, color type: 6 (RGBA)
+        b"\x00\x00\x00"  # compression, filter, interlace
+        b"\x1f\x15\xc4\x89"  # CRC
+        b"\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01"  # IDAT chunk
+        b"\r\n-\xb4"  # CRC
+        b"\x00\x00\x00\x00IEND"  # IEND chunk
+        b"\xaeB`\x82"  # CRC
+    )
+
+
+@pytest.fixture
+def user_with_photo(session, test_user_data, sample_png_bytes):
+    """Create a user with a photo in the database"""
+    hashed_password = pwd_context.hash(test_user_data["password"])
+
+    user = User(
+        uid=uuid4(),
+        email=test_user_data["email"],
+        name=test_user_data["name"],
+        role=test_user_data["role"],
+        password=hashed_password,
+        photo=sample_png_bytes,
+    )
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def user_with_photo_auth_token(user_with_photo):
+    """Generate JWT token for user with photo"""
+    user_data = {
+        "uid": str(user_with_photo.uid),
+        "email": user_with_photo.email,
+        "name": user_with_photo.name,
+        "role": user_with_photo.role,
+    }
+
+    token_response = sign_jwt(user_with_photo.uid, user_data)
+    return token_response.access_token
+
+
+@pytest.fixture
+def user_with_photo_auth_headers(user_with_photo_auth_token):
+    """Generate authorization headers for user with photo"""
+    return {"Authorization": f"Bearer {user_with_photo_auth_token}"}

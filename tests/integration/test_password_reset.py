@@ -6,7 +6,6 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 from sqlmodel import select
 
-from app.controllers.user import pwd_context
 from app.main import app
 from app.models.password_reset import PasswordReset
 
