@@ -108,3 +108,11 @@ Just run integration tests
 APP_ENV=test uv run pytest tests/integration
 ```
 
+
+// TODO
+
+{
+    "detail": "(psycopg.errors.NotNullViolation) null value in column \"user_id\" of relation \"password_resets\" violates not-null constraint\nDETAIL:  Failing row contains (ac8585ed-2c1f-40dd-8a13-ddc3d77af02f, null, 2026-02-05 11:38:19.655726, t).\n[SQL: UPDATE password_resets SET user_id=%(user_id)s::UUID WHERE password_resets.token = %(password_resets_token)s::UUID]\n[parameters: {'user_id': None, 'password_resets_token': UUID('ac8585ed-2c1f-40dd-8a13-ddc3d77af02f')}]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+}
+
+Delete a test user fails cos of some password reset relationship

@@ -16,7 +16,7 @@ class UserRole(StrEnum):
     VIEWER = "viewer"
     CREATOR = "creator"
     ADMIN = "admin"
-    SUPER_ADMIN = "super-admin"
+    SUPER_ADMIN = "super_admin"
 
 
 class UserStatus(StrEnum):
