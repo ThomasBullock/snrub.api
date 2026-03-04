@@ -14,10 +14,12 @@ mot.fastapi/
 │   ├── services/
 │   └── main.py
 ├── migrations/
-├── tests/
 ├── scripts/
+├── seeds/
+├── tests/
 ├── alembic.ini
 ├── docker-compose.yaml
+├── Dockerfile
 ├── pyproject.toml
 ├── pytest.ini
 └── ruff.toml
@@ -26,11 +28,14 @@ mot.fastapi/
 
 ## Local development 
 
+Clone this repo snrub.api and the frontend [snrub.client](https://github.com/ThomasBullock/snrub.client) into a folder adjacent to each other.
+
+In snrub.api
 Copy .env.example -> .env.development and fill in the values
 
 Build with docker for local development 
 
-```shell
+```zsh
 docker-compose up -d --build
 ```
 
