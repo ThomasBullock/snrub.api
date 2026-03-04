@@ -136,5 +136,3 @@ uv run ruff format .
 
 
 
-
-Delete a test user fails cos of some password reset relationship
