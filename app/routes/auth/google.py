@@ -1,19 +1,15 @@
 from logging import getLogger
 
 from authlib.integrations.starlette_client import OAuthError
-from fastapi import APIRouter, Depends
-
-# from sqlmodel import Session
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 from starlette.requests import Request
 
 from app.core.config import settings
-
-# from app.db.database import get_session
 from app.db.crud_base import CRUDBase
 from app.db.database import get_session
-from app.models.user import User, UserRole
+from app.models.user import LoginResponse, User, UserRole
 from app.security.jwt import sign_jwt
 from app.security.oauth_client import oauth
 
@@ -23,18 +19,9 @@ router = APIRouter(prefix="/auth/google", tags=["Authentication"])
 user_crud = CRUDBase(User)
 
 
-# Routes will be added here
 @router.get("/login")
 async def login(request: Request):
     """Login route"""
-
-    # Log OAuth client configuration
-    logger.info(
-        f"Google OAuth client configuration: client_id={settings.GOOGLE_CLIENT_ID}, "
-        f"client_secret_set={bool(settings.GOOGLE_CLIENT_SECRET)}, "
-        f"redirect_uri={settings.GOOGLE_AUTH_REDIRECT_URI}, "
-        f"oauth_client_initialized={oauth is not None}"
-    )
     redirect_uri = settings.GOOGLE_AUTH_REDIRECT_URI
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
@@ -46,20 +33,19 @@ async def callback(request: Request, session: Session = Depends(get_session)):
     try:
         token = await oauth.google.authorize_access_token(request)
     except OAuthError as error:
-        return HTMLResponse(f"<h1>{error.error}</h1>")
+        logger.error("OAuth error during callback: %s", error.error)
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/auth/callback?provider=google&success=false&error=auth_failed"
+        )
     user_info = token.get("userinfo")
-    # if user:
-    #     request.session['user'] = dict(user)
 
     # Find or create user based on email
     email = user_info.get("email")
     existing_user = user_crud.get_by_email(session, email)
 
     if existing_user:
-        # User exists, update if needed
         user = existing_user
     else:
-        # Create new user
         new_user = User(
             email=email,
             name=user_info.get("name", email),
@@ -68,12 +54,23 @@ async def callback(request: Request, session: Session = Depends(get_session)):
         )
         user = user_crud.create(session, new_user)
 
-    # Generate JWT token
-    user_data = {"uid": str(user.uid), "email": user.email, "name": user.name, "role": user.role}
-
+    # Generate JWT token and store in session for secure retrieval
+    user_data = user.to_jwt_data()
     token_response = sign_jwt(user.uid, user_data)
 
-    # Redirect with token in fragment
+    request.session["auth_token"] = token_response.access_token
+    request.session["auth_user"] = user_data
+
     return RedirectResponse(
-        url=f"{settings.FRONTEND_URL}/auth/callback?provider=google&success=true#token={token_response.access_token}"
+        url=f"{settings.FRONTEND_URL}/auth/callback?provider=google&success=true"
     )
+
+
+@router.get("/token", response_model=LoginResponse)
+async def get_token(request: Request):
+    """Exchange server session for JWT token after OAuth redirect"""
+    token = request.session.pop("auth_token", None)
+    user = request.session.pop("auth_user", None)
+    if not token:
+        raise HTTPException(status_code=401, detail="No pending authentication")
+    return LoginResponse(access_token=token, user=user)
